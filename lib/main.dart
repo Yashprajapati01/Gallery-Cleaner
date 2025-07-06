@@ -19,7 +19,7 @@ Future<void> main() async {
     BlocProvider(
       create: (_) => GalleryBloc(repository)..add(LoadMedia()),
       child: MaterialApp(
-        title: 'GalleryTinder',
+        title: 'Gallery Cleaner',
         debugShowCheckedModeBanner: false,
         theme: ThemeData.dark(),
         home: const GallerySwiperScreen(),

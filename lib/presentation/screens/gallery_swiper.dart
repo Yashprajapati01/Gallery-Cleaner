@@ -1,12 +1,14 @@
-import 'dart:ui';
+import 'dart:io';
+import 'dart:math';
 
 import 'package:appinio_swiper/appinio_swiper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:intl/intl.dart';
+import 'package:gallerycleaner/presentation/screens/video_viewer.dart';
 
 import '../../domain/models/media_assets.dart';
 import '../bloc/gallery_bloc.dart';
+import 'full_image_viewer.dart';
 
 class GallerySwiperScreen extends StatefulWidget {
   const GallerySwiperScreen({super.key});
@@ -19,6 +21,7 @@ class _GallerySwiperScreenState extends State<GallerySwiperScreen>
     with TickerProviderStateMixin {
   late AppinioSwiperController controller;
   final Set<String> _swipedIds = <String>{};
+  final Set<String> _deletedIds = <String>{}; // Track deleted items
   late AnimationController _backgroundController;
   late AnimationController _particleController;
   late Animation<double> _backgroundAnimation;
@@ -28,11 +31,11 @@ class _GallerySwiperScreenState extends State<GallerySwiperScreen>
     super.initState();
     controller = AppinioSwiperController();
     _backgroundController = AnimationController(
-      duration: const Duration(seconds: 8),
+      duration: const Duration(seconds: 12),
       vsync: this,
     );
     _particleController = AnimationController(
-      duration: const Duration(seconds: 15),
+      duration: const Duration(seconds: 20),
       vsync: this,
     );
     _backgroundAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
@@ -50,27 +53,39 @@ class _GallerySwiperScreenState extends State<GallerySwiperScreen>
     super.dispose();
   }
 
+  void _addToDeleteList(MediaAsset asset) {
+    setState(() {
+      _deletedIds.add(asset.id);
+    });
+  }
+
+  void _removeFromDeleteList(String assetId) {
+    setState(() {
+      _deletedIds.remove(assetId);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0D0D0D),
+      backgroundColor: const Color(0xFF000000),
       body: Stack(
         children: [
-          // Animated background
+          // Enhanced animated background
           AnimatedBuilder(
             animation: _backgroundAnimation,
             builder: (context, child) {
               return Container(
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+                  gradient: RadialGradient(
+                    center: Alignment.topCenter,
+                    radius: 1.5,
                     colors: [
-                      Color.lerp(const Color(0xFF0D0D0D), const Color(0xFF1A1A2E),
+                      Color.lerp(const Color(0xFF1A1A2E), const Color(0xFF16213E),
                           _backgroundAnimation.value)!,
-                      Color.lerp(const Color(0xFF16213E), const Color(0xFF0F3460),
+                      Color.lerp(const Color(0xFF0F3460), const Color(0xFF1A1A2E),
                           _backgroundAnimation.value)!,
-                      const Color(0xFF0D0D0D),
+                      const Color(0xFF000000),
                     ],
                   ),
                 ),
@@ -78,82 +93,125 @@ class _GallerySwiperScreenState extends State<GallerySwiperScreen>
             },
           ),
 
-          // Floating particles
-          ...List.generate(12, (index) => _FloatingParticle(
+          // Floating particles with better distribution
+          ...List.generate(15, (index) => _FloatingParticle(
             controller: _particleController,
-            delay: index * 0.8,
-            size: 2.0 + (index % 3),
+            delay: index * 0.6,
+            size: 1.5 + (index % 4) * 0.5,
           )),
 
           SafeArea(
+            maintainBottomViewPadding: false,
             child: BlocConsumer<GalleryBloc, GalleryState>(
               listener: (context, state) {
                 if (state.history.isEmpty) {
                   _swipedIds.clear();
+                  // Optional: Clear delete list when history is cleared
+                  // _deletedIds.clear();
                 }
               },
               builder: (context, state) {
+                if (state.isLoading) {
+                  return Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        CircularProgressIndicator(
+                          value: state.loadingProgress,
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          '${(state.loadingProgress * 100).toInt()}%',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
                 final availableMedia = state.mediaList
                     .where((media) => !_swipedIds.contains(media.id))
                     .toList();
 
-                return Column(
+                return Stack(
+                  clipBehavior: Clip.none,
                   children: [
-                    // Minimal sophisticated header
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 4,
-                            height: 24,
-                            decoration: const BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [Color(0xFF64FFDA), Color(0xFF1DE9B6)],
+                    Column(
+                      children: [
+                        // Minimalist header
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Text(
+                                'Card Swipe',
+                                style: TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                  letterSpacing: -0.3,
+                                ),
                               ),
-                            ),
+                            ],
                           ),
-                          const SizedBox(width: 16),
-                          const Text(
-                            'Gallery',
-                            style: TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.w300,
-                              color: Colors.white,
-                              letterSpacing: -0.5,
-                            ),
-                          ),
-                          const Spacer(),
-                          Text(
-                            '${availableMedia.length}',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.white.withOpacity(0.6),
-                            ),
-                          ),
-                        ],
+                        ),
+
+                        // Main card stack area
+                        Expanded(
+                          child: availableMedia.isEmpty
+                              ? _buildEmptyState()
+                              : _buildEnhancedCardStack(availableMedia),
+                        ),
+
+                        // Enhanced bottom controls
+                        _EnhancedControls(
+                          controller: controller,
+                          remainingCount: availableMedia.length,
+                          onUndo: () {
+                            final lastSwipedAsset = state.history.lastOrNull;
+                            if (lastSwipedAsset != null) {
+                              setState(() {
+                                _swipedIds.remove(lastSwipedAsset.id);
+                                // Also remove from delete list if it was there
+                                _deletedIds.remove(lastSwipedAsset.id);
+                              });
+                              context.read<GalleryBloc>().add(UndoSwipe());
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+
+                    // Delete button with badge - top right (improved positioning)
+                    Positioned(
+                      top: 16,
+                      right: 20,
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        child: _DeleteButton(
+                          deleteCount: _deletedIds.length,
+                          onTap: () {
+                            // Navigate to delete list and potentially clear the list
+                            Navigator.pushNamed(context, '/delete-list').then((result) {
+                              // If user confirmed deletion, clear the delete list
+                              if (result == true) {
+                                setState(() {
+                                  _deletedIds.clear();
+                                });
+                              }
+                            });
+                          },
+                          onLongPress: () {
+                            // Add current top card to delete list
+                            if (availableMedia.isNotEmpty) {
+                              _addToDeleteList(availableMedia.first);
+                            }
+                          },
+                        ),
                       ),
-                    ),
-
-                    Expanded(
-                      child: availableMedia.isEmpty
-                          ? _buildEmptyState()
-                          : _buildCardStack(availableMedia),
-                    ),
-
-                    _SophisticatedControls(
-                      controller: controller,
-                      remainingCount: availableMedia.length,
-                      onUndo: () {
-                        final lastSwipedAsset = state.history.lastOrNull;
-                        if (lastSwipedAsset != null) {
-                          setState(() {
-                            _swipedIds.remove(lastSwipedAsset.id);
-                          });
-                          context.read<GalleryBloc>().add(UndoSwipe());
-                        }
-                      },
                     ),
                   ],
                 );
@@ -171,38 +229,43 @@ class _GallerySwiperScreenState extends State<GallerySwiperScreen>
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            width: 80,
-            height: 80,
+            width: 100,
+            height: 100,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: const Color(0xFF64FFDA).withOpacity(0.1),
+              gradient: RadialGradient(
+                colors: [
+                  const Color(0xFF64FFDA).withOpacity(0.2),
+                  const Color(0xFF64FFDA).withOpacity(0.05),
+                ],
+              ),
               border: Border.all(
                 color: const Color(0xFF64FFDA).withOpacity(0.3),
-                width: 1,
+                width: 2,
               ),
             ),
             child: Icon(
               Icons.done_all_rounded,
-              size: 32,
-              color: const Color(0xFF64FFDA).withOpacity(0.8),
+              size: 40,
+              color: const Color(0xFF64FFDA),
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 32),
           const Text(
-            'All sorted',
+            'All Done!',
             style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w300,
+              fontSize: 28,
+              fontWeight: FontWeight.w600,
               color: Colors.white,
               letterSpacing: -0.5,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           Text(
-            'Your gallery is organized',
+            'You\'ve sorted through all your photos',
             style: TextStyle(
               fontSize: 16,
-              color: Colors.white.withOpacity(0.5),
+              color: Colors.white.withOpacity(0.6),
             ),
           ),
         ],
@@ -210,69 +273,85 @@ class _GallerySwiperScreenState extends State<GallerySwiperScreen>
     );
   }
 
-  Widget _buildCardStack(List<MediaAsset> availableMedia) {
-    return Stack(
-      children: [
-        // Background cards with sophisticated layering
-        for (int i = 2; i >= 0; i--)
-          if (i < availableMedia.length)
-            Positioned.fill(
-              child: Transform.translate(
-                offset: Offset(i * 2.0, i * 2.0),
-                child: Transform.scale(
-                  scale: 1.0 - (i * 0.015),
-                  child: _SophisticatedCard(
-                    key: ValueKey('bg_${availableMedia[i].id}_$i'),
-                    asset: availableMedia[i],
-                    isBackground: true,
-                    backgroundIndex: i,
+  Widget _buildEnhancedCardStack(List<MediaAsset> availableMedia) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Stack(
+        children: [
+          // Background cards with enhanced stacking effect
+          for (int i = 2; i >= 0; i--)
+            if (i < availableMedia.length)
+              Positioned.fill(
+                child: Container(
+                  margin: EdgeInsets.only(
+                    top: 40.0 + (i * 20.0),
+                    bottom: 120.0 - (i * 15.0),
+                  ),
+                  child: Transform.translate(
+                    offset: Offset(0, i * 8.0),
+                    child: Transform.scale(
+                      scale: 1.0 - (i * 0.03),
+                      child: _EnhancedCard(
+                        key: ValueKey('bg_${availableMedia[i].id}_$i'),
+                        asset: availableMedia[i],
+                        isBackground: true,
+                        backgroundIndex: i,
+                      ),
+                    ),
                   ),
                 ),
               ),
+
+          // Main swiper with proper positioning
+          Container(
+            margin: const EdgeInsets.only(top: 40, bottom: 120),
+            child: AppinioSwiper(
+              key: ValueKey(_swipedIds.length),
+              controller: controller,
+              cardBuilder: (BuildContext context, int index) {
+                if (index >= availableMedia.length) {
+                  return const SizedBox();
+                }
+
+                final asset = availableMedia[index];
+                return _EnhancedCard(
+                  key: ValueKey(asset.id),
+                  asset: asset,
+                  isBackground: false,
+                );
+              },
+              cardCount: availableMedia.length,
+              backgroundCardCount: 0,
+              swipeOptions: const SwipeOptions.only(
+                left: true,
+                right: true,
+              ),
+              loop: false,
+              onSwipeEnd: (prevIndex, targetIndex, activity) {
+                if (activity is Swipe && activity.end != null) {
+                  if (prevIndex >= availableMedia.length) return;
+
+                  final asset = availableMedia[prevIndex];
+                  final dx = activity.end!.dx;
+
+                  setState(() {
+                    _swipedIds.add(asset.id);
+                  });
+
+                  if (dx > 0) {
+                    // Swiped right (keep/favorite)
+                    context.read<GalleryBloc>().add(SwipeRight(asset));
+                  } else {
+                    // Swiped left (delete)
+                    _addToDeleteList(asset); // Add to delete list
+                    context.read<GalleryBloc>().add(SwipeLeft(asset));
+                  }
+                }
+              },
             ),
-        // Main swiper
-        AppinioSwiper(
-          key: ValueKey(_swipedIds.length),
-          controller: controller,
-          cardBuilder: (BuildContext context, int index) {
-            if (index >= availableMedia.length) {
-              return const SizedBox();
-            }
-
-            final asset = availableMedia[index];
-            return _SophisticatedCard(
-              key: ValueKey(asset.id),
-              asset: asset,
-              isBackground: false,
-            );
-          },
-          cardCount: availableMedia.length,
-          backgroundCardCount: 0,
-          swipeOptions: const SwipeOptions.symmetric(
-            horizontal: true,
-            vertical: false,
           ),
-          loop: false,
-          onSwipeEnd: (prevIndex, targetIndex, activity) {
-            if (activity is Swipe && activity.end != null) {
-              if (prevIndex >= availableMedia.length) return;
-
-              final asset = availableMedia[prevIndex];
-              final dx = activity.end!.dx;
-
-              setState(() {
-                _swipedIds.add(asset.id);
-              });
-
-              if (dx > 0) {
-                context.read<GalleryBloc>().add(SwipeRight(asset));
-              } else {
-                context.read<GalleryBloc>().add(SwipeLeft(asset));
-              }
-            }
-          },
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -297,15 +376,26 @@ class _FloatingParticle extends StatelessWidget {
         final screenHeight = MediaQuery.of(context).size.height;
         final screenWidth = MediaQuery.of(context).size.width;
 
+        // Create floating motion
+        final x = (screenWidth * 0.05) + (progress * screenWidth * 0.9);
+        final y = screenHeight * 0.1 +
+            (sin(progress * 2 * pi) * 50) +
+            (progress * screenHeight * 0.8);
+
         return Positioned(
-          left: (screenWidth * 0.1) + (progress * screenWidth * 0.8),
-          top: screenHeight * 0.1 + (progress * screenHeight * 0.8),
+          left: x,
+          top: y,
           child: Container(
             width: size,
             height: size,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Colors.white.withOpacity(0.1 - (progress * 0.1)),
+              gradient: RadialGradient(
+                colors: [
+                  Colors.white.withOpacity(0.15 - (progress * 0.1)),
+                  Colors.transparent,
+                ],
+              ),
             ),
           ),
         );
@@ -314,12 +404,12 @@ class _FloatingParticle extends StatelessWidget {
   }
 }
 
-class _SophisticatedCard extends StatefulWidget {
+class _EnhancedCard extends StatefulWidget {
   final MediaAsset asset;
   final bool isBackground;
   final int backgroundIndex;
 
-  const _SophisticatedCard({
+  const _EnhancedCard({
     super.key,
     required this.asset,
     this.isBackground = false,
@@ -327,255 +417,438 @@ class _SophisticatedCard extends StatefulWidget {
   });
 
   @override
-  State<_SophisticatedCard> createState() => _SophisticatedCardState();
+  State<_EnhancedCard> createState() => _EnhancedCardState();
 }
 
-class _SophisticatedCardState extends State<_SophisticatedCard>
+class _EnhancedCardState extends State<_EnhancedCard>
     with SingleTickerProviderStateMixin {
-  late AnimationController _hoverController;
-  late Animation<double> _hoverAnimation;
+  late AnimationController _shimmerController;
 
   @override
   void initState() {
     super.initState();
     if (!widget.isBackground) {
-      _hoverController = AnimationController(
-        duration: const Duration(milliseconds: 200),
+      _shimmerController = AnimationController(
+        duration: const Duration(seconds: 3),
         vsync: this,
       );
-      _hoverAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-        CurvedAnimation(parent: _hoverController, curve: Curves.easeOut),
-      );
+      _shimmerController.repeat();
     }
   }
 
   @override
   void dispose() {
     if (!widget.isBackground) {
-      _hoverController.dispose();
+      _shimmerController.dispose();
     }
     super.dispose();
   }
 
+  void _debugMediaAsset() {
+    print("=== MediaAsset Debug Info ===");
+    print("Asset ID: ${widget.asset.id}");
+    print("Asset Path: '${widget.asset.path}'");
+    print("Path Length: ${widget.asset.path.length}");
+    print("Is Video: ${widget.asset.isVideo}");
+    print("Has Thumbnail: ${widget.asset.thumbnail != null}");
+    print("Thumbnail Size: ${widget.asset.thumbnail?.length ?? 0} bytes");
+
+    if (widget.asset.path.endsWith('/')) {
+      print("WARNING: Path appears to be a directory, not a file!");
+    }
+
+    File(widget.asset.path).exists().then((exists) {
+      print("File exists: $exists");
+      if (!exists) {
+        final dir = Directory(widget.asset.path);
+        dir.exists().then((dirExists) {
+          print("Directory exists: $dirExists");
+          if (dirExists) {
+            dir.list().listen((entity) {
+              print("Found in directory: ${entity.path}");
+            });
+          }
+        });
+      } else {
+        File(widget.asset.path).length().then((length) {
+          print("File size: $length bytes");
+        });
+      }
+    });
+    print("========================");
+  }
+
   @override
   Widget build(BuildContext context) {
-    final opacity = widget.isBackground ? 0.4 - (widget.backgroundIndex * 0.15) : 1.0;
-    final blur = widget.isBackground ? widget.backgroundIndex * 0.5 : 0.0;
+    final opacity = widget.isBackground
+        ? 0.7 - (widget.backgroundIndex * 0.2)
+        : 1.0;
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+    return GestureDetector(
+      onTap: () async {
+        if (!widget.isBackground) {
+          _debugMediaAsset();
+          print("Card tapped: ${widget.asset.path}");
+          final path = widget.asset.path;
+
+          final file = File(path);
+          if (!await file.exists()) {
+            print("File does not exist: $path");
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text("File not found: $path")),
+            );
+            return;
+          }
+
+          print("File exists, opening: $path");
+          print("Is video: ${widget.asset.isVideo}");
+
+          if (widget.asset.isVideo) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => FullVideoPlayerScreen(videoPath: path),
+              ),
+            );
+          } else {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => FullImageViewerScreen(imagePath: path),
+              ),
+            );
+          }
+        }
+      },
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(24),
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Colors.white.withOpacity(widget.isBackground ? 0.05 : 0.1),
-                  Colors.white.withOpacity(widget.isBackground ? 0.02 : 0.05),
-                ],
+        borderRadius: BorderRadius.circular(widget.isBackground ? 16 : 20),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(widget.isBackground ? 16 : 20),
+            boxShadow: widget.isBackground ? null : [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.4),
+                blurRadius: 25,
+                spreadRadius: 0,
+                offset: const Offset(0, 15),
               ),
-              border: Border.all(
-                color: Colors.white.withOpacity(widget.isBackground ? 0.1 : 0.2),
-                width: 1,
+              BoxShadow(
+                color: Colors.black.withOpacity(0.2),
+                blurRadius: 50,
+                spreadRadius: 0,
+                offset: const Offset(0, 25),
               ),
-              boxShadow: widget.isBackground ? null : [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.3),
-                  blurRadius: 30,
-                  spreadRadius: 0,
-                  offset: const Offset(0, 20),
+            ],
+          ),
+          child: Stack(
+            children: [
+              // Main image with enhanced styling
+              Positioned.fill(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(widget.isBackground ? 16 : 20),
+                  child: widget.asset.thumbnail != null
+                      ? Container(
+                    decoration: BoxDecoration(
+                      image: DecorationImage(
+                        image: MemoryImage(widget.asset.thumbnail!),
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  )
+                      : Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          const Color(0xFF2A2A2A),
+                          const Color(0xFF1A1A1A),
+                        ],
+                      ),
+                    ),
+                    child: const Center(
+                      child: Icon(
+                        Icons.image_not_supported_outlined,
+                        size: 60,
+                        color: Color(0xFF555555),
+                      ),
+                    ),
+                  ),
                 ),
-              ],
-            ),
-            child: Stack(
-              children: [
-                // Main image
+              ),
+
+              // Enhanced overlay for main card
+              if (!widget.isBackground) ...[
+                // Bottom gradient overlay
                 Positioned.fill(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(23),
-                    child: widget.asset.thumbnail != null
-                        ? Image.memory(
-                      widget.asset.thumbnail!,
-                      fit: BoxFit.cover,
-                      width: double.infinity,
-                      height: double.infinity,
-                    )
-                        : Container(
-                      color: const Color(0xFF1A1A1A),
-                      child: const Center(
-                        child: Icon(
-                          Icons.image_not_supported_outlined,
-                          size: 48,
-                          color: Color(0xFF404040),
-                        ),
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.transparent,
+                          Colors.transparent,
+                          Colors.black.withOpacity(0.3),
+                          Colors.black.withOpacity(0.8),
+                        ],
+                        stops: const [0.0, 0.5, 0.8, 1.0],
                       ),
                     ),
                   ),
                 ),
 
-                // Sophisticated overlay
-                if (!widget.isBackground) ...[
-                  // Gradient overlay
-                  Positioned.fill(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(23),
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.transparent,
-                            Colors.transparent,
-                            Colors.black.withOpacity(0.8),
-                          ],
-                          stops: const [0.0, 0.4, 1.0],
+                // Shimmer effect
+                AnimatedBuilder(
+                  animation: _shimmerController,
+                  builder: (context, child) {
+                    return Positioned.fill(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(20),
+                          gradient: LinearGradient(
+                            begin: Alignment(-1.0 + (_shimmerController.value * 2.0), -1.0),
+                            end: Alignment(1.0 + (_shimmerController.value * 2.0), 1.0),
+                            colors: [
+                              Colors.transparent,
+                              Colors.white.withOpacity(0.1),
+                              Colors.transparent,
+                            ],
+                            stops: const [0.0, 0.5, 1.0],
+                          ),
                         ),
                       ),
-                    ),
-                  ),
+                    );
+                  },
+                ),
 
-                  // Minimal date indicator
-                  Positioned(
-                    top: 24,
-                    left: 24,
+                // Video icon overlay for videos
+                if (!widget.isBackground && widget.asset.isVideo)
+                  Center(
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.6),
-                        borderRadius: BorderRadius.circular(12),
+                        color: Colors.black.withOpacity(0.7),
+                        borderRadius: BorderRadius.circular(100),
                         border: Border.all(
                           color: Colors.white.withOpacity(0.2),
-                          width: 0.5,
+                          width: 1,
                         ),
                       ),
-                      child: Text(
-                        _formatDate(DateTime.now()),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w500,
-                          letterSpacing: 0.5,
-                        ),
+                      child: Icon(
+                        Icons.play_arrow_rounded,
+                        color: Colors.white,
+                        size: 50,
                       ),
                     ),
                   ),
 
-                  // Swipe indicators
-                  Positioned(
-                    bottom: 32,
-                    left: 24,
-                    right: 24,
+                // Action indicators at the bottom
+                Positioned(
+                  bottom: 24,
+                  left: 24,
+                  right: 24,
+                  child: IgnorePointer(
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        _SwipeIndicator(
+                        _ActionIndicator(
                           icon: Icons.close_rounded,
-                          color: const Color(0xFFFF6B6B),
-                          opacity: opacity,
+                          color: Colors.white,
+                          backgroundColor: Colors.black.withOpacity(0.8),
                         ),
-                        _SwipeIndicator(
+                        _ActionIndicator(
                           icon: Icons.favorite_rounded,
-                          color: const Color(0xFF64FFDA),
-                          opacity: opacity,
+                          color: const Color(0xFFFF3B5C),
+                          backgroundColor: Colors.black.withOpacity(0.8),
                         ),
                       ],
                     ),
                   ),
-                ],
-
-                // Subtle edge highlight
-                if (!widget.isBackground)
-                  Positioned.fill(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(24),
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            Colors.white.withOpacity(0.1),
-                            Colors.transparent,
-                            Colors.transparent,
-                            Colors.white.withOpacity(0.05),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
+                ),
               ],
-            ),
+            ],
           ),
         ),
       ),
     );
   }
-
-  String _formatDate(DateTime? date) {
-    if (date == null) return 'Unknown';
-
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final yesterday = today.subtract(const Duration(days: 1));
-    final cardDate = DateTime(date.year, date.month, date.day);
-
-    if (cardDate == today) {
-      return 'Today';
-    } else if (cardDate == yesterday) {
-      return 'Yesterday';
-    } else if (now.difference(date).inDays < 7) {
-      return DateFormat('EEE').format(date);
-    } else if (date.year == now.year) {
-      return DateFormat('MMM d').format(date);
-    } else {
-      return DateFormat('MMM d, y').format(date);
-    }
-  }
 }
 
-class _SwipeIndicator extends StatelessWidget {
+class _ActionIndicator extends StatelessWidget {
   final IconData icon;
   final Color color;
-  final double opacity;
+  final Color backgroundColor;
 
-  const _SwipeIndicator({
+  const _ActionIndicator({
     required this.icon,
     required this.color,
-    required this.opacity,
+    required this.backgroundColor,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 44,
-      height: 44,
+      width: 48,
+      height: 48,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: color.withOpacity(0.15),
+        color: backgroundColor,
         border: Border.all(
-          color: color.withOpacity(0.3),
+          color: Colors.white.withOpacity(0.2),
           width: 1,
         ),
       ),
       child: Icon(
         icon,
-        color: color.withOpacity(0.8),
-        size: 20,
+        color: color,
+        size: 22,
       ),
     );
   }
 }
 
-class _SophisticatedControls extends StatelessWidget {
+class _DeleteButton extends StatefulWidget {
+  final int deleteCount;
+  final VoidCallback onTap;
+  final VoidCallback onLongPress;
+
+  const _DeleteButton({
+    required this.deleteCount,
+    required this.onTap,
+    required this.onLongPress,
+  });
+
+  @override
+  State<_DeleteButton> createState() => _DeleteButtonState();
+}
+
+class _DeleteButtonState extends State<_DeleteButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    );
+    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.1).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+    if (widget.deleteCount > 0) {
+      _pulseController.repeat(reverse: true);
+    }
+  }
+
+  @override
+  void didUpdateWidget(_DeleteButton oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.deleteCount > 0 && oldWidget.deleteCount == 0) {
+      _pulseController.repeat(reverse: true);
+    } else if (widget.deleteCount == 0 && oldWidget.deleteCount > 0) {
+      _pulseController.stop();
+      _pulseController.reset();
+    }
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: widget.onTap,
+      onLongPress: widget.onLongPress,
+      child: AnimatedBuilder(
+        animation: _pulseAnimation,
+        builder: (context, child) {
+          return Transform.scale(
+            scale: widget.deleteCount > 0 ? _pulseAnimation.value : 1.0,
+            child: SizedBox(
+              width: 56,
+              height: 56,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Positioned(
+                    left: 4,
+                    top: 4,
+                    child: Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.black.withOpacity(0.7),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.2),
+                          width: 1,
+                        ),
+                      ),
+                      child: Icon(
+                        Icons.delete_outline_rounded,
+                        color: Colors.white.withOpacity(0.9),
+                        size: 22,
+                      ),
+                    ),
+                  ),
+                  if (widget.deleteCount > 0)
+                    Positioned(
+                      right: 0,
+                      top: 0,
+                      child: Container(
+                        width: 22,
+                        height: 22,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFF3B5C),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Colors.black,
+                            width: 2,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.4),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Center(
+                          child: Text(
+                            widget.deleteCount > 99 ? '99+' : '${widget.deleteCount}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              height: 1.0,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _EnhancedControls extends StatelessWidget {
   final AppinioSwiperController controller;
   final int remainingCount;
   final VoidCallback onUndo;
 
-  const _SophisticatedControls({
+  const _EnhancedControls({
     required this.controller,
     required this.remainingCount,
     required this.onUndo,
@@ -586,74 +859,39 @@ class _SophisticatedControls extends StatelessWidget {
     final hasRemainingItems = remainingCount > 0;
 
     return Container(
-      margin: const EdgeInsets.all(20),
-      padding: const EdgeInsets.all(20),
+      margin: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Colors.white.withOpacity(0.08),
-            Colors.white.withOpacity(0.04),
-          ],
-        ),
+        borderRadius: BorderRadius.circular(24),
+        color: Colors.black.withOpacity(0.8),
         border: Border.all(
-          color: Colors.white.withOpacity(0.15),
+          color: Colors.white.withOpacity(0.1),
           width: 1,
         ),
       ),
-      child: Column(
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          // Progress indicator
-          if (hasRemainingItems) ...[
-            Row(
-              children: [
-                Text(
-                  'Remaining',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.white.withOpacity(0.6),
-                    fontWeight: FontWeight.w400,
-                  ),
-                ),
-                const Spacer(),
-                Text(
-                  '$remainingCount',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-          ],
-
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _SophisticatedButton(
-                onTap: hasRemainingItems ? () => controller.swipeLeft() : null,
-                onLongPress: () => Navigator.pushNamed(context, '/delete-list'),
-                icon: Icons.close_rounded,
-                color: const Color(0xFFFF6B6B),
-                isEnabled: hasRemainingItems,
-              ),
-              _SophisticatedButton(
-                onTap: onUndo,
-                icon: Icons.undo_rounded,
-                color: Colors.white.withOpacity(0.8),
-                isEnabled: true,
-              ),
-              _SophisticatedButton(
-                onTap: hasRemainingItems ? () => controller.swipeRight() : null,
-                icon: Icons.favorite_rounded,
-                color: const Color(0xFF64FFDA),
-                isEnabled: hasRemainingItems,
-              ),
-            ],
+          _EnhancedButton(
+            onTap: hasRemainingItems ? () => controller.swipeLeft() : null,
+            icon: Icons.close_rounded,
+            color: Colors.white,
+            isEnabled: hasRemainingItems,
+            size: 64,
+          ),
+          _EnhancedButton(
+            onTap: onUndo,
+            icon: Icons.undo_rounded,
+            color: Colors.white.withOpacity(0.7),
+            isEnabled: true,
+            size: 48,
+          ),
+          _EnhancedButton(
+            onTap: hasRemainingItems ? () => controller.swipeRight() : null,
+            icon: Icons.favorite_rounded,
+            color: const Color(0xFFFF3B5C),
+            isEnabled: hasRemainingItems,
+            size: 64,
           ),
         ],
       ),
@@ -661,64 +899,63 @@ class _SophisticatedControls extends StatelessWidget {
   }
 }
 
-class _SophisticatedButton extends StatefulWidget {
+class _EnhancedButton extends StatefulWidget {
   final VoidCallback? onTap;
-  final VoidCallback? onLongPress;
   final IconData icon;
   final Color color;
   final bool isEnabled;
+  final double size;
 
-  const _SophisticatedButton({
+  const _EnhancedButton({
     required this.onTap,
-    this.onLongPress,
     required this.icon,
     required this.color,
     required this.isEnabled,
+    required this.size,
   });
 
   @override
-  State<_SophisticatedButton> createState() => _SophisticatedButtonState();
+  State<_EnhancedButton> createState() => _EnhancedButtonState();
 }
 
-class _SophisticatedButtonState extends State<_SophisticatedButton>
+class _EnhancedButtonState extends State<_EnhancedButton>
     with SingleTickerProviderStateMixin {
-  late AnimationController _scaleController;
-  late Animation<double> _scaleAnimation;
+  late AnimationController _pressController;
+  late Animation<double> _pressAnimation;
 
   @override
   void initState() {
     super.initState();
-    _scaleController = AnimationController(
-      duration: const Duration(milliseconds: 150),
+    _pressController = AnimationController(
+      duration: const Duration(milliseconds: 100),
       vsync: this,
     );
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.95).animate(
-      CurvedAnimation(parent: _scaleController, curve: Curves.easeInOut),
+    _pressAnimation = Tween<double>(begin: 1.0, end: 0.9).animate(
+      CurvedAnimation(parent: _pressController, curve: Curves.easeOut),
     );
   }
 
   @override
   void dispose() {
-    _scaleController.dispose();
+    _pressController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTapDown: (_) => _scaleController.forward(),
-      onTapUp: (_) => _scaleController.reverse(),
-      onTapCancel: () => _scaleController.reverse(),
+      onTapDown: (_) => _pressController.forward(),
+      onTapUp: (_) => _pressController.reverse(),
+      onTapCancel: () => _pressController.reverse(),
       onTap: widget.onTap,
-      onLongPress: widget.onLongPress,
       child: AnimatedBuilder(
-        animation: _scaleAnimation,
+        animation: _pressAnimation,
         builder: (context, child) {
           return Transform.scale(
-            scale: _scaleAnimation.value,
+            scale: _pressAnimation.value,
             child: Container(
-              width: 56,
-              height: 56,
+              width: widget.size,
+              height: widget.size,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: widget.isEnabled
@@ -728,7 +965,7 @@ class _SophisticatedButtonState extends State<_SophisticatedButton>
                   color: widget.isEnabled
                       ? widget.color.withOpacity(0.3)
                       : Colors.white.withOpacity(0.1),
-                  width: 1,
+                  width: 1.5,
                 ),
               ),
               child: Icon(
@@ -736,7 +973,7 @@ class _SophisticatedButtonState extends State<_SophisticatedButton>
                 color: widget.isEnabled
                     ? widget.color
                     : Colors.white.withOpacity(0.3),
-                size: 24,
+                size: widget.size * 0.4,
               ),
             ),
           );
