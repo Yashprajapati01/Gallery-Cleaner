@@ -11,7 +11,10 @@ class GalleryState {
   final List<MediaAsset> kept;
   final List<MediaAsset> history;
   final bool isLoading;
+  final bool isLoadingMore;
   final double loadingProgress;
+  final double loadingMoreProgress;
+  final String? error;
 
   GalleryState({
     required this.mediaList,
@@ -19,7 +22,10 @@ class GalleryState {
     required this.kept,
     required this.history,
     required this.isLoading,
+    required this.isLoadingMore,
     required this.loadingProgress,
+    required this.loadingMoreProgress,
+    this.error,
   });
 
   factory GalleryState.initial() => GalleryState(
@@ -28,7 +34,9 @@ class GalleryState {
     kept: [],
     history: [],
     isLoading: false,
+    isLoadingMore: false,
     loadingProgress: 0.0,
+    loadingMoreProgress: 0.0,
   );
 
   GalleryState copyWith({
@@ -37,7 +45,10 @@ class GalleryState {
     List<MediaAsset>? kept,
     List<MediaAsset>? history,
     bool? isLoading,
+    bool? isLoadingMore,
     double? loadingProgress,
+    double? loadingMoreProgress,
+    String? error,
   }) {
     return GalleryState(
       mediaList: mediaList ?? this.mediaList,
@@ -45,9 +56,24 @@ class GalleryState {
       kept: kept ?? this.kept,
       history: history ?? this.history,
       isLoading: isLoading ?? this.isLoading,
+      isLoadingMore: isLoadingMore ?? this.isLoadingMore,
       loadingProgress: loadingProgress ?? this.loadingProgress,
+      loadingMoreProgress: loadingMoreProgress ?? this.loadingMoreProgress,
+      error: error ?? this.error,
     );
   }
+  @override
+  List<Object?> get props => [
+    mediaList,
+    toDelete,
+    kept,
+    history,
+    isLoading,
+    isLoadingMore,
+    loadingProgress,
+    loadingMoreProgress,
+    error,
+  ];
 }
 
 

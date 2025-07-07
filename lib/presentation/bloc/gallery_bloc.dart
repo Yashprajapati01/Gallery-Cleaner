@@ -13,6 +13,7 @@ class GalleryBloc extends Bloc<GalleryEvent, GalleryState> {
 
   GalleryBloc(this.repository) : super(GalleryState.initial()) {
     on<LoadMedia>(_onLoadMedia);
+    on<LoadMoreMedia>(_onLoadMoreMedia);
     on<SwipeLeft>(_onSwipeLeft);
     on<SwipeRight>(_onSwipeRight);
     on<UndoSwipe>(_onUndoSwipe);
@@ -27,20 +28,68 @@ class GalleryBloc extends Bloc<GalleryEvent, GalleryState> {
   Future<void> _onLoadMedia(LoadMedia event, Emitter<GalleryState> emit) async {
     emit(state.copyWith(isLoading: true, loadingProgress: 0.0));
 
-    final media = await repository.fetchMedia(
-      onProgress: (double progress) {
-        emit(state.copyWith(loadingProgress: progress));
-      },
-    );
+    try {
+      final media = await repository.fetchMedia(
+        onProgress: (double progress) {
+          emit(state.copyWith(loadingProgress: progress));
+        },
+      );
 
-    emit(state.copyWith(
-      mediaList: media,
-      isLoading: false,
-      loadingProgress: 1.0,
-    ));
+      emit(state.copyWith(
+        mediaList: media,
+        isLoading: false,
+        loadingProgress: 1.0,
+      ));
+
+      if (repository.hasMoreMedia) {
+        add(LoadMoreMedia());
+      }
+    }catch (e) {
+      emit(state.copyWith(
+        isLoading: false,
+        error: e.toString(),
+      ));
+    }
   }
 
+  Future<void> _onLoadMoreMedia(LoadMoreMedia event, Emitter<GalleryState> emit) async {
+    if (state.isLoadingMore || !repository.hasMoreMedia) return;
 
+    emit(state.copyWith(isLoadingMore: true, loadingMoreProgress: 0.0));
+
+    try {
+      final moreMedia = await repository.fetchMoreMedia(
+        onProgress: (double progress) {
+          emit(state.copyWith(loadingMoreProgress: progress));
+        },
+      );
+
+      if (moreMedia.isNotEmpty) {
+        emit(state.copyWith(
+          mediaList: [...state.mediaList, ...moreMedia],
+          isLoadingMore: false,
+          loadingMoreProgress: 1.0,
+        ));
+
+        // Continue loading if there's still more media
+        if (repository.hasMoreMedia) {
+          // Add a small delay to prevent overwhelming the system
+          await Future.delayed(const Duration(milliseconds: 500));
+          add(LoadMoreMedia());
+        }
+      } else {
+        emit(state.copyWith(
+          isLoadingMore: false,
+          loadingMoreProgress: 1.0,
+        ));
+      }
+    } catch (e) {
+      emit(state.copyWith(
+        isLoadingMore: false,
+        error: e.toString(),
+      ));
+    }
+  }
   void _onSwipeLeft(SwipeLeft event, Emitter<GalleryState> emit) {
     emit(state.copyWith(
       toDelete: [...state.toDelete, event.media],

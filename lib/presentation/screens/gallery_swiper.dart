@@ -81,10 +81,16 @@ class _GallerySwiperScreenState extends State<GallerySwiperScreen>
                     center: Alignment.topCenter,
                     radius: 1.5,
                     colors: [
-                      Color.lerp(const Color(0xFF1A1A2E), const Color(0xFF16213E),
-                          _backgroundAnimation.value)!,
-                      Color.lerp(const Color(0xFF0F3460), const Color(0xFF1A1A2E),
-                          _backgroundAnimation.value)!,
+                      Color.lerp(
+                        const Color(0xFF1A1A2E),
+                        const Color(0xFF16213E),
+                        _backgroundAnimation.value,
+                      )!,
+                      Color.lerp(
+                        const Color(0xFF0F3460),
+                        const Color(0xFF1A1A2E),
+                        _backgroundAnimation.value,
+                      )!,
                       const Color(0xFF000000),
                     ],
                   ),
@@ -94,11 +100,14 @@ class _GallerySwiperScreenState extends State<GallerySwiperScreen>
           ),
 
           // Floating particles with better distribution
-          ...List.generate(15, (index) => _FloatingParticle(
-            controller: _particleController,
-            delay: index * 0.6,
-            size: 1.5 + (index % 4) * 0.5,
-          )),
+          ...List.generate(
+            15,
+            (index) => _FloatingParticle(
+              controller: _particleController,
+              delay: index * 0.6,
+              size: 1.5 + (index % 4) * 0.5,
+            ),
+          ),
 
           SafeArea(
             maintainBottomViewPadding: false,
@@ -109,6 +118,11 @@ class _GallerySwiperScreenState extends State<GallerySwiperScreen>
                   // Optional: Clear delete list when history is cleared
                   // _deletedIds.clear();
                 }
+                if (state.error != null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error: ${state.error}')),
+                  );
+                }
               },
               builder: (context, state) {
                 if (state.isLoading) {
@@ -118,8 +132,19 @@ class _GallerySwiperScreenState extends State<GallerySwiperScreen>
                       children: [
                         CircularProgressIndicator(
                           value: state.loadingProgress,
+                          strokeWidth: 3,
+                          color: const Color(0xFF64FFDA),
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Loading Photos...',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
                         Text(
                           '${(state.loadingProgress * 100).toInt()}%',
                           style: const TextStyle(
@@ -155,6 +180,14 @@ class _GallerySwiperScreenState extends State<GallerySwiperScreen>
                                   letterSpacing: -0.3,
                                 ),
                               ),
+                              if (state.mediaList.isNotEmpty)
+                                Text(
+                                  '${availableMedia.length} / ${state.mediaList.length}',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.white.withOpacity(0.6),
+                                  ),
+                                ),
                             ],
                           ),
                         ),
@@ -191,25 +224,68 @@ class _GallerySwiperScreenState extends State<GallerySwiperScreen>
                       right: 20,
                       child: Container(
                         padding: const EdgeInsets.all(6),
-                        child: _DeleteButton(
-                          deleteCount: _deletedIds.length,
-                          onTap: () {
-                            // Navigate to delete list and potentially clear the list
-                            Navigator.pushNamed(context, '/delete-list').then((result) {
-                              // If user confirmed deletion, clear the delete list
-                              if (result == true) {
-                                setState(() {
-                                  _deletedIds.clear();
+                        child: Column(
+                          children: [
+                            if (state.isLoadingMore)
+                              Container(
+                                margin: const EdgeInsets.only(right: 12),
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withOpacity(0.7),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: Colors.white.withOpacity(0.2),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                        value: state.loadingMoreProgress,
+                                        strokeWidth: 2,
+                                        color: const Color(0xFF64FFDA),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Loading...',
+                                      style: TextStyle(
+                                        color: Colors.white.withOpacity(0.8),
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            _DeleteButton(
+                              deleteCount: _deletedIds.length,
+                              onTap: () {
+                                // Navigate to delete list and potentially clear the list
+                                Navigator.pushNamed(
+                                  context,
+                                  '/delete-list',
+                                ).then((result) {
+                                  // If user confirmed deletion, clear the delete list
+                                  if (result == true) {
+                                    setState(() {
+                                      _deletedIds.clear();
+                                    });
+                                  }
                                 });
-                              }
-                            });
-                          },
-                          onLongPress: () {
-                            // Add current top card to delete list
-                            if (availableMedia.isNotEmpty) {
-                              _addToDeleteList(availableMedia.first);
-                            }
-                          },
+                              },
+                              onLongPress: () {
+                                // Add current top card to delete list
+                                if (availableMedia.isNotEmpty) {
+                                  _addToDeleteList(availableMedia.first);
+                                }
+                              },
+                            ),
+                          ],
                         ),
                       ),
                     ),
@@ -224,52 +300,78 @@ class _GallerySwiperScreenState extends State<GallerySwiperScreen>
   }
 
   Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 100,
-            height: 100,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: RadialGradient(
-                colors: [
-                  const Color(0xFF64FFDA).withOpacity(0.2),
-                  const Color(0xFF64FFDA).withOpacity(0.05),
-                ],
+    return BlocBuilder<GalleryBloc, GalleryState>(
+      builder: (context, state) {
+        return Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      const Color(0xFF64FFDA).withOpacity(0.2),
+                      const Color(0xFF64FFDA).withOpacity(0.05),
+                    ],
+                  ),
+                  border: Border.all(
+                    color: const Color(0xFF64FFDA).withOpacity(0.3),
+                    width: 2,
+                  ),
+                ),
+                child: Icon(
+                  Icons.done_all_rounded,
+                  size: 40,
+                  color: const Color(0xFF64FFDA),
+                ),
               ),
-              border: Border.all(
-                color: const Color(0xFF64FFDA).withOpacity(0.3),
-                width: 2,
+              const SizedBox(height: 32),
+              const Text(
+                'All Done!',
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                  letterSpacing: -0.5,
+                ),
               ),
-            ),
-            child: Icon(
-              Icons.done_all_rounded,
-              size: 40,
-              color: const Color(0xFF64FFDA),
-            ),
+              const SizedBox(height: 12),
+              Text(
+                'You\'ve sorted through all your photos',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.white.withOpacity(0.6),
+                ),
+                textAlign: TextAlign.center,
+              ),
+              if (state.isLoadingMore) ...[
+                const SizedBox(height: 24),
+                Text(
+                  'Loading more photos in background...',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.white.withOpacity(0.5),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+              if (state.mediaList.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Text(
+                  'Total loaded: ${state.mediaList.length} photos',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.white.withOpacity(0.4),
+                  ),
+                ),
+              ],
+            ],
           ),
-          const SizedBox(height: 32),
-          const Text(
-            'All Done!',
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-              letterSpacing: -0.5,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'You\'ve sorted through all your photos',
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.white.withOpacity(0.6),
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -322,10 +424,7 @@ class _GallerySwiperScreenState extends State<GallerySwiperScreen>
               },
               cardCount: availableMedia.length,
               backgroundCardCount: 0,
-              swipeOptions: const SwipeOptions.only(
-                left: true,
-                right: true,
-              ),
+              swipeOptions: const SwipeOptions.only(left: true, right: true),
               loop: false,
               onSwipeEnd: (prevIndex, targetIndex, activity) {
                 if (activity is Swipe && activity.end != null) {
@@ -378,7 +477,8 @@ class _FloatingParticle extends StatelessWidget {
 
         // Create floating motion
         final x = (screenWidth * 0.05) + (progress * screenWidth * 0.9);
-        final y = screenHeight * 0.1 +
+        final y =
+            screenHeight * 0.1 +
             (sin(progress * 2 * pi) * 50) +
             (progress * screenHeight * 0.8);
 
@@ -494,9 +594,9 @@ class _EnhancedCardState extends State<_EnhancedCard>
           final file = File(path);
           if (!await file.exists()) {
             print("File does not exist: $path");
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text("File not found: $path")),
-            );
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text("File not found: $path")));
             return;
           }
 
@@ -525,55 +625,59 @@ class _EnhancedCardState extends State<_EnhancedCard>
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(widget.isBackground ? 16 : 20),
-            boxShadow: widget.isBackground ? null : [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.4),
-                blurRadius: 25,
-                spreadRadius: 0,
-                offset: const Offset(0, 15),
-              ),
-              BoxShadow(
-                color: Colors.black.withOpacity(0.2),
-                blurRadius: 50,
-                spreadRadius: 0,
-                offset: const Offset(0, 25),
-              ),
-            ],
+            boxShadow: widget.isBackground
+                ? null
+                : [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.4),
+                      blurRadius: 25,
+                      spreadRadius: 0,
+                      offset: const Offset(0, 15),
+                    ),
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 50,
+                      spreadRadius: 0,
+                      offset: const Offset(0, 25),
+                    ),
+                  ],
           ),
           child: Stack(
             children: [
               // Main image with enhanced styling
               Positioned.fill(
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(widget.isBackground ? 16 : 20),
+                  borderRadius: BorderRadius.circular(
+                    widget.isBackground ? 16 : 20,
+                  ),
                   child: widget.asset.thumbnail != null
                       ? Container(
-                    decoration: BoxDecoration(
-                      image: DecorationImage(
-                        image: MemoryImage(widget.asset.thumbnail!),
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                  )
+                          decoration: BoxDecoration(
+                            image: DecorationImage(
+                              image: MemoryImage(widget.asset.thumbnail!),
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        )
                       : Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          const Color(0xFF2A2A2A),
-                          const Color(0xFF1A1A1A),
-                        ],
-                      ),
-                    ),
-                    child: const Center(
-                      child: Icon(
-                        Icons.image_not_supported_outlined,
-                        size: 60,
-                        color: Color(0xFF555555),
-                      ),
-                    ),
-                  ),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                const Color(0xFF2A2A2A),
+                                const Color(0xFF1A1A1A),
+                              ],
+                            ),
+                          ),
+                          child: const Center(
+                            child: Icon(
+                              Icons.image_not_supported_outlined,
+                              size: 60,
+                              color: Color(0xFF555555),
+                            ),
+                          ),
+                        ),
                 ),
               ),
 
@@ -608,8 +712,14 @@ class _EnhancedCardState extends State<_EnhancedCard>
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(20),
                           gradient: LinearGradient(
-                            begin: Alignment(-1.0 + (_shimmerController.value * 2.0), -1.0),
-                            end: Alignment(1.0 + (_shimmerController.value * 2.0), 1.0),
+                            begin: Alignment(
+                              -1.0 + (_shimmerController.value * 2.0),
+                              -1.0,
+                            ),
+                            end: Alignment(
+                              1.0 + (_shimmerController.value * 2.0),
+                              1.0,
+                            ),
                             colors: [
                               Colors.transparent,
                               Colors.white.withOpacity(0.1),
@@ -695,16 +805,9 @@ class _ActionIndicator extends StatelessWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: backgroundColor,
-        border: Border.all(
-          color: Colors.white.withOpacity(0.2),
-          width: 1,
-        ),
+        border: Border.all(color: Colors.white.withOpacity(0.2), width: 1),
       ),
-      child: Icon(
-        icon,
-        color: color,
-        size: 22,
-      ),
+      child: Icon(icon, color: color, size: 22),
     );
   }
 }
@@ -808,10 +911,7 @@ class _DeleteButtonState extends State<_DeleteButton>
                         decoration: BoxDecoration(
                           color: const Color(0xFFFF3B5C),
                           shape: BoxShape.circle,
-                          border: Border.all(
-                            color: Colors.black,
-                            width: 2,
-                          ),
+                          border: Border.all(color: Colors.black, width: 2),
                           boxShadow: [
                             BoxShadow(
                               color: Colors.black.withOpacity(0.4),
@@ -822,7 +922,9 @@ class _DeleteButtonState extends State<_DeleteButton>
                         ),
                         child: Center(
                           child: Text(
-                            widget.deleteCount > 99 ? '99+' : '${widget.deleteCount}',
+                            widget.deleteCount > 99
+                                ? '99+'
+                                : '${widget.deleteCount}',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 11,
@@ -864,10 +966,7 @@ class _EnhancedControls extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
         color: Colors.black.withOpacity(0.8),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.1),
-          width: 1,
-        ),
+        border: Border.all(color: Colors.white.withOpacity(0.1), width: 1),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -930,9 +1029,10 @@ class _EnhancedButtonState extends State<_EnhancedButton>
       duration: const Duration(milliseconds: 100),
       vsync: this,
     );
-    _pressAnimation = Tween<double>(begin: 1.0, end: 0.9).animate(
-      CurvedAnimation(parent: _pressController, curve: Curves.easeOut),
-    );
+    _pressAnimation = Tween<double>(
+      begin: 1.0,
+      end: 0.9,
+    ).animate(CurvedAnimation(parent: _pressController, curve: Curves.easeOut));
   }
 
   @override

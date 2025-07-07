@@ -3,22 +3,33 @@ part of 'gallery_bloc.dart';
 // @immutable
 // sealed class GalleryEvent {}
 
-abstract class GalleryEvent {}
+abstract class GalleryEvent extends Equatable {
+  const GalleryEvent();
+  @override
+  List<Object> get props => [];
+}
 
 class LoadMedia extends GalleryEvent {}
+class LoadMoreMedia extends GalleryEvent {}
 class SwipeLeft extends GalleryEvent {
   final MediaAsset media;
   SwipeLeft(this.media);
+  @override
+  List<Object> get props => [media];
 }
 class SwipeRight extends GalleryEvent {
   final MediaAsset media;
   SwipeRight(this.media);
+  @override
+  List<Object> get props => [media];
 }
 class UndoSwipe extends GalleryEvent {}
 class ConfirmDelete extends GalleryEvent {}
 class RestoreMedia extends GalleryEvent {
   final MediaAsset media;
   RestoreMedia(this.media);
+  @override
+  List<Object> get props => [media];
 }
 class LoadImageFile extends GalleryEvent {
   final String imagePath;
