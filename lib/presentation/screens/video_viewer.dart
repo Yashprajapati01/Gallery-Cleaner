@@ -119,7 +119,8 @@ class FullVideoPlayerScreen extends StatefulWidget {
 }
 
 class _FullVideoPlayerScreenState extends State<FullVideoPlayerScreen> {
-  VideoPlayerController? _videoController; // Make it nullable and remove the invalid initialization
+  VideoPlayerController?
+  _videoController; // Make it nullable and remove the invalid initialization
   ChewieController? _chewieController;
 
   String? _errorMessage;
@@ -142,7 +143,9 @@ class _FullVideoPlayerScreenState extends State<FullVideoPlayerScreen> {
         return;
       }
 
-      _videoController = VideoPlayerController.file(file); // Use the instance variable
+      _videoController = VideoPlayerController.file(
+        file,
+      ); // Use the instance variable
       await _videoController!.initialize();
 
       _chewieController = ChewieController(
@@ -178,33 +181,46 @@ class _FullVideoPlayerScreenState extends State<FullVideoPlayerScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
-        title: const Text('Video Player', style: TextStyle(color: Colors.white)),
+        title: const Text(
+          'Video Player',
+          style: TextStyle(color: Colors.white),
+        ),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _errorMessage != null
           ? Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.video_file_outlined, size: 64, color: Colors.white.withOpacity(0.5)),
-            const SizedBox(height: 16),
-            Text(
-              'Video Error',
-              style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 18),
-            ),
-            const SizedBox(height: 8),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32),
-              child: Text(
-                _errorMessage!,
-                style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12),
-                textAlign: TextAlign.center,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.video_file_outlined,
+                    size: 64,
+                    color: Colors.white.withOpacity(0.5),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Video Error',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.7),
+                      fontSize: 18,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 32),
+                    child: Text(
+                      _errorMessage!,
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.5),
+                        fontSize: 12,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ],
-        ),
-      )
+            )
           : Chewie(controller: _chewieController!),
     );
   }

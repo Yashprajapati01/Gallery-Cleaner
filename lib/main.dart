@@ -23,9 +23,7 @@ Future<void> main() async {
         debugShowCheckedModeBanner: false,
         theme: ThemeData.dark(),
         home: const GallerySwiperScreen(),
-        routes: {
-          '/delete-list': (_) => const DeleteListScreen(),
-        },
+        routes: {'/delete-list': (_) => const DeleteListScreen()},
       ),
     ),
   );

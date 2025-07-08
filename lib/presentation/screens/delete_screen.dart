@@ -15,7 +15,7 @@ class DeleteListScreen extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.delete_forever),
             onPressed: () => context.read<GalleryBloc>().add(ConfirmDelete()),
-          )
+          ),
         ],
       ),
       body: BlocBuilder<GalleryBloc, GalleryState>(
@@ -49,13 +49,14 @@ class DeleteListScreen extends StatelessWidget {
                     top: 4,
                     right: 4,
                     child: GestureDetector(
-                      onTap: () => context.read<GalleryBloc>().add(RestoreMedia(asset)),
+                      onTap: () =>
+                          context.read<GalleryBloc>().add(RestoreMedia(asset)),
                       child: const CircleAvatar(
                         backgroundColor: Colors.white70,
                         child: Icon(Icons.restore, color: Colors.green),
                       ),
                     ),
-                  )
+                  ),
                 ],
               );
             },

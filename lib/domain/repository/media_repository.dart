@@ -10,7 +10,6 @@
 //   Future<bool> checkFileExists(String path);
 // }
 
-
 // Add these methods to your MediaRepository interface
 
 import 'package:gallerycleaner/domain/models/media_assets.dart';

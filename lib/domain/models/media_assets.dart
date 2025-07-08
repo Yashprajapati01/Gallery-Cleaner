@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+
 class MediaAsset {
   final String id;
   final String path;

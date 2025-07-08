@@ -10,30 +10,37 @@ abstract class GalleryEvent extends Equatable {
 }
 
 class LoadMedia extends GalleryEvent {}
+
 class LoadMoreMedia extends GalleryEvent {}
+
 class SwipeLeft extends GalleryEvent {
   final MediaAsset media;
   SwipeLeft(this.media);
   @override
   List<Object> get props => [media];
 }
+
 class SwipeRight extends GalleryEvent {
   final MediaAsset media;
   SwipeRight(this.media);
   @override
   List<Object> get props => [media];
 }
+
 class UndoSwipe extends GalleryEvent {}
+
 class ConfirmDelete extends GalleryEvent {}
+
 class RestoreMedia extends GalleryEvent {
   final MediaAsset media;
   RestoreMedia(this.media);
   @override
   List<Object> get props => [media];
 }
+
 class LoadImageFile extends GalleryEvent {
   final String imagePath;
-   LoadImageFile(this.imagePath);
+  LoadImageFile(this.imagePath);
 
   @override
   List<Object> get props => [imagePath];
@@ -41,11 +48,10 @@ class LoadImageFile extends GalleryEvent {
 
 class LoadVideoFile extends GalleryEvent {
   final String videoPath;
-   LoadVideoFile(this.videoPath);
+  LoadVideoFile(this.videoPath);
   @override
   List<Object> get props => [videoPath];
 }
-
 
 //
 // abstract class GalleryEvent extends Equatable {

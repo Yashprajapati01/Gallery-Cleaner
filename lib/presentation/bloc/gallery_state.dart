@@ -62,6 +62,7 @@ class GalleryState {
       error: error ?? this.error,
     );
   }
+
   @override
   List<Object?> get props => [
     mediaList,
@@ -75,7 +76,6 @@ class GalleryState {
     error,
   ];
 }
-
 
 // enum GalleryStatus { initial, loading, success, error, deleting }
 // enum ImageViewerStatus { initial, loading, success, error }

@@ -35,24 +35,26 @@ class GalleryBloc extends Bloc<GalleryEvent, GalleryState> {
         },
       );
 
-      emit(state.copyWith(
-        mediaList: media,
-        isLoading: false,
-        loadingProgress: 1.0,
-      ));
+      emit(
+        state.copyWith(
+          mediaList: media,
+          isLoading: false,
+          loadingProgress: 1.0,
+        ),
+      );
 
       if (repository.hasMoreMedia) {
         add(LoadMoreMedia());
       }
-    }catch (e) {
-      emit(state.copyWith(
-        isLoading: false,
-        error: e.toString(),
-      ));
+    } catch (e) {
+      emit(state.copyWith(isLoading: false, error: e.toString()));
     }
   }
 
-  Future<void> _onLoadMoreMedia(LoadMoreMedia event, Emitter<GalleryState> emit) async {
+  Future<void> _onLoadMoreMedia(
+    LoadMoreMedia event,
+    Emitter<GalleryState> emit,
+  ) async {
     if (state.isLoadingMore || !repository.hasMoreMedia) return;
 
     emit(state.copyWith(isLoadingMore: true, loadingMoreProgress: 0.0));
@@ -65,11 +67,13 @@ class GalleryBloc extends Bloc<GalleryEvent, GalleryState> {
       );
 
       if (moreMedia.isNotEmpty) {
-        emit(state.copyWith(
-          mediaList: [...state.mediaList, ...moreMedia],
-          isLoadingMore: false,
-          loadingMoreProgress: 1.0,
-        ));
+        emit(
+          state.copyWith(
+            mediaList: [...state.mediaList, ...moreMedia],
+            isLoadingMore: false,
+            loadingMoreProgress: 1.0,
+          ),
+        );
 
         // Continue loading if there's still more media
         if (repository.hasMoreMedia) {
@@ -78,32 +82,31 @@ class GalleryBloc extends Bloc<GalleryEvent, GalleryState> {
           add(LoadMoreMedia());
         }
       } else {
-        emit(state.copyWith(
-          isLoadingMore: false,
-          loadingMoreProgress: 1.0,
-        ));
+        emit(state.copyWith(isLoadingMore: false, loadingMoreProgress: 1.0));
       }
     } catch (e) {
-      emit(state.copyWith(
-        isLoadingMore: false,
-        error: e.toString(),
-      ));
+      emit(state.copyWith(isLoadingMore: false, error: e.toString()));
     }
   }
+
   void _onSwipeLeft(SwipeLeft event, Emitter<GalleryState> emit) {
-    emit(state.copyWith(
-      toDelete: [...state.toDelete, event.media],
-      history: [...state.history, event.media],
-      // Keep mediaList unchanged - UI will handle filtering
-    ));
+    emit(
+      state.copyWith(
+        toDelete: [...state.toDelete, event.media],
+        history: [...state.history, event.media],
+        // Keep mediaList unchanged - UI will handle filtering
+      ),
+    );
   }
 
   void _onSwipeRight(SwipeRight event, Emitter<GalleryState> emit) {
-    emit(state.copyWith(
-      kept: [...state.kept, event.media],
-      history: [...state.history, event.media],
-      // Keep mediaList unchanged - UI will handle filtering
-    ));
+    emit(
+      state.copyWith(
+        kept: [...state.kept, event.media],
+        history: [...state.history, event.media],
+        // Keep mediaList unchanged - UI will handle filtering
+      ),
+    );
   }
 
   void _onUndoSwipe(UndoSwipe event, Emitter<GalleryState> emit) {
@@ -112,14 +115,19 @@ class GalleryBloc extends Bloc<GalleryEvent, GalleryState> {
     final last = state.history.last;
     final updatedHistory = [...state.history]..removeLast();
 
-    emit(state.copyWith(
-      toDelete: [...state.toDelete]..remove(last),
-      kept: [...state.kept]..remove(last),
-      history: updatedHistory,
-    ));
+    emit(
+      state.copyWith(
+        toDelete: [...state.toDelete]..remove(last),
+        kept: [...state.kept]..remove(last),
+        history: updatedHistory,
+      ),
+    );
   }
 
-  Future<void> _onConfirmDelete(ConfirmDelete event, Emitter<GalleryState> emit) async {
+  Future<void> _onConfirmDelete(
+    ConfirmDelete event,
+    Emitter<GalleryState> emit,
+  ) async {
     await repository.deleteMedia(state.toDelete);
 
     // After confirming delete, update the mediaList to reflect actual remaining items
@@ -127,24 +135,27 @@ class GalleryBloc extends Bloc<GalleryEvent, GalleryState> {
         .where((media) => !state.toDelete.contains(media))
         .toList();
 
-    emit(state.copyWith(
-      mediaList: remainingMedia,
-      toDelete: [],
-      history: [], // Clear history after confirm
-    ));
+    emit(
+      state.copyWith(
+        mediaList: remainingMedia,
+        toDelete: [],
+        history: [], // Clear history after confirm
+      ),
+    );
   }
 
   void _onRestoreMedia(RestoreMedia event, Emitter<GalleryState> emit) {
-    emit(state.copyWith(
-      toDelete: [...state.toDelete]..remove(event.media),
-      // Add back to mediaList if it was removed
-      mediaList: state.mediaList.contains(event.media)
-          ? state.mediaList
-          : [event.media, ...state.mediaList],
-    ));
+    emit(
+      state.copyWith(
+        toDelete: [...state.toDelete]..remove(event.media),
+        // Add back to mediaList if it was removed
+        mediaList: state.mediaList.contains(event.media)
+            ? state.mediaList
+            : [event.media, ...state.mediaList],
+      ),
+    );
   }
 }
-
 
 // class GalleryBloc extends Bloc<GalleryEvent, GalleryState> {
 //   final MediaRepository repository;

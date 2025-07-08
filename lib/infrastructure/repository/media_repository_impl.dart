@@ -185,8 +185,10 @@ class MediaRepositoryImpl implements MediaRepository {
 
       if (albums.isEmpty) return [];
 
-      final endIndex = (_currentOffset + PAGINATION_BATCH_SIZE)
-          .clamp(0, _totalAssetCount!);
+      final endIndex = (_currentOffset + PAGINATION_BATCH_SIZE).clamp(
+        0,
+        _totalAssetCount!,
+      );
 
       if (_currentOffset >= _totalAssetCount!) return [];
 
@@ -205,11 +207,11 @@ class MediaRepositoryImpl implements MediaRepository {
   }
 
   Future<List<MediaAsset>> _loadBatch(
-      AssetPathEntity album, {
-        required int start,
-        required int end,
-        required void Function(double progress) onProgress,
-      }) async {
+    AssetPathEntity album, {
+    required int start,
+    required int end,
+    required void Function(double progress) onProgress,
+  }) async {
     final mediaList = await album.getAssetListRange(start: start, end: end);
     List<MediaAsset> loadedAssets = [];
 
@@ -218,18 +220,20 @@ class MediaRepositoryImpl implements MediaRepository {
 
       // Load thumbnail in isolate for better performance
       final thumb = await asset.thumbnailDataWithSize(
-          const ThumbnailSize(300, 900)
+        const ThumbnailSize(300, 900),
       );
 
       final file = await asset.file;
       final fullPath = file?.path ?? '';
 
-      loadedAssets.add(MediaAsset(
-        id: asset.id,
-        path: fullPath,
-        thumbnail: thumb,
-        isVideo: asset.type == AssetType.video,
-      ));
+      loadedAssets.add(
+        MediaAsset(
+          id: asset.id,
+          path: fullPath,
+          thumbnail: thumb,
+          isVideo: asset.type == AssetType.video,
+        ),
+      );
 
       // Update progress
       onProgress((i + 1) / mediaList.length);
@@ -240,9 +244,7 @@ class MediaRepositoryImpl implements MediaRepository {
 
   @override
   Future<void> deleteMedia(List<MediaAsset> toDelete) async {
-    await PhotoManager.editor.deleteWithIds(
-        toDelete.map((e) => e.id).toList()
-    );
+    await PhotoManager.editor.deleteWithIds(toDelete.map((e) => e.id).toList());
   }
 
   @override
@@ -255,7 +257,8 @@ class MediaRepositoryImpl implements MediaRepository {
   }
 
   @override
-  bool get hasMoreMedia => _totalAssetCount != null && _currentOffset < _totalAssetCount!;
+  bool get hasMoreMedia =>
+      _totalAssetCount != null && _currentOffset < _totalAssetCount!;
 
   @override
   bool get isLoadingMore => _isLoadingMore;

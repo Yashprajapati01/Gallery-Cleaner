@@ -40,10 +40,7 @@ class FullImageViewerScreen extends StatelessWidget {
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
-        title: Text(
-          'Image Viewer',
-          style: TextStyle(color: Colors.white),
-        ),
+        title: Text('Image Viewer', style: TextStyle(color: Colors.white)),
       ),
       body: FutureBuilder<bool>(
         future: File(imagePath).exists(),
@@ -93,9 +90,8 @@ class FullImageViewerScreen extends StatelessWidget {
                 minScale: PhotoViewComputedScale.contained * 0.8,
                 maxScale: PhotoViewComputedScale.covered * 2.0,
                 heroAttributes: PhotoViewHeroAttributes(tag: imagePath),
-                loadingBuilder: (context, event) => const Center(
-                  child: CircularProgressIndicator(),
-                ),
+                loadingBuilder: (context, event) =>
+                    const Center(child: CircularProgressIndicator()),
                 errorBuilder: (context, error, stackTrace) => Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
