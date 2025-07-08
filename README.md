@@ -1,4 +1,4 @@
-# 📱 GalleryCleaner
+# 📱 Gallery Cleaner
 
 > A Tinder-style gallery cleaner app built with Flutter. Swipe through your photos and videos to quickly organize and clean up your device's gallery.
 
@@ -8,7 +8,7 @@
 
 ## 🚀 What is GalleryCleaner?
 
-GalleryTinder transforms the tedious task of cleaning your photo gallery into an engaging, swipe-based experience. Just like Tinder, but for your photos and videos! View one media item at a time and make quick decisions to keep your gallery organized.
+Gallery Cleaner transforms the tedious task of cleaning your photo gallery into an engaging, swipe-based experience. Just like Tinder, but for your photos and videos! View one media item at a time and make quick decisions to keep your gallery organized.
 
 ### ✨ Key Features
 
@@ -18,6 +18,17 @@ GalleryTinder transforms the tedious task of cleaning your photo gallery into an
 - **🗑️ Deletion Management** - Review, restore, or permanently delete marked items
 - **🎞️ Full Media Support** - View images and play videos in fullscreen
 - **📦 Optimized Performance** - Lazy loading and responsive design for smooth experience
+
+## 📸 Screenshots
+
+<!-- Add your screenshots here -->
+Swiper Screen       |  Delete Screen
+:-------------------------:|:-------------------------:
+<img src="Swiper screen.jpeg"> |  <img src="delete screen.jpeg">
+
+Image preview       |  video preview
+:-------------------------:|:-------------------------:
+<img src="gitAssets\image preview.jpeg"> |  <img src="gitAssets\video preview.jpeg">
 
 ## 🏗️ Architecture
 
@@ -56,8 +67,10 @@ Powered by **flutter_bloc** for predictable state management:
 | `appinio_swiper` | Tinder-style swipe interface |
 | `flutter_bloc` | State management |
 | `get_it` & `injectable` | Dependency injection |
-| `flutter_animate` | Smooth animations |
+| `photo_view` | photo viewer |
+| `permission_handler` | permission handling |
 | `video_player` | Video playback support |
+| `chewier` | Video playback controls |
 
 ## ⚙️ Setup & Installation
 
@@ -69,8 +82,8 @@ Powered by **flutter_bloc** for predictable state management:
 
 ### 1️⃣ Clone the Repository
 ```bash
-git clone https://github.com/your-username/gallery-tinder.git
-cd gallery-tinder
+git clone https://github.com/your-username/gallery-cleaner.git
+cd gallery-cleaner
 ```
 
 ### 2️⃣ Install Dependencies
@@ -103,14 +116,6 @@ flutter pub run build_runner build --delete-conflicting-outputs
 flutter run
 ```
 
-## 📸 Screenshots
-
-<!-- Add your screenshots here -->
-```
-📷 [Main Swiper Screen - Coming Soon]
-📷 [Delete List Screen - Coming Soon]
-📷 [Fullscreen Media Viewer - Coming Soon]
-```
 
 ## 🛣️ Roadmap
 
@@ -119,16 +124,13 @@ flutter run
 - [x] Undo swipe functionality
 - [x] Delete list management screen
 - [x] Clean Architecture implementation
+- [x] Enhanced video playback controls
 
 ### 🔄 In Progress
-- [ ] Enhanced video playback controls
 - [ ] Shuffle mode for random media browsing
+- [ ] Sort/filter by date, location, file size
 
 ### 📋 Planned Features
-- [ ] Sort/filter by date, location, file size
-- [ ] Cloud sync support (Google Photos, iCloud)
-- [ ] Analytics dashboard (storage saved, items processed)
-- [ ] Export deletion history
 - [ ] Multiple theme support & dark mode
 - [ ] Batch operations
 - [ ] Smart suggestions based on duplicates/blur detection
@@ -178,6 +180,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 <div align="center">
-  <p>Made with ❤️ and Flutter</p>
+  <p>Made with ❤️ and Flutter by 2Noob2Code</p>
   <p>Star ⭐ this repo if you found it helpful!</p>
 </div>
