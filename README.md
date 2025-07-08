@@ -24,7 +24,7 @@ Gallery Cleaner transforms the tedious task of cleaning your photo gallery into 
 <!-- Add your screenshots here -->
 Swiper Screen       |  Delete Screen
 :-------------------------:|:-------------------------:
-<img src="Swiper screen.jpeg"> |  <img src="delete screen.jpeg">
+<img src="gitAssets\Swiper screen.jpeg"> |  <img src="gitAssets\delete screen.jpeg">
 
 Image preview       |  video preview
 :-------------------------:|:-------------------------:
